@@ -1,0 +1,9 @@
+tests:
+  - name: test increment field
+    target_mapping: increment.blobl
+    input_batch:
+      - content: |
+          { "level": 1 }
+    output_batches:
+      - - json_equals: |
+            { "level": 2 }

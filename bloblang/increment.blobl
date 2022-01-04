@@ -1,0 +1,7 @@
+# Created by https://github.com/Jeffail
+map inc_level {
+  root = this
+  root.level = this.level + 1
+}
+
+root = this.apply("inc_level")
