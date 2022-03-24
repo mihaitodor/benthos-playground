@@ -1,0 +1,35 @@
+version: "3.4"
+services:
+  redpanda:
+    image: vectorized/redpanda:v21.11.11
+    container_name: redpanda
+    hostname: redpanda
+    command:
+      - redpanda
+      - start
+      - --smp
+      - '1'
+      - --reserve-memory
+      - 0M
+      - --overprovisioned
+      - --node-id
+      - '0'
+    ports:
+      - 8082:8082
+      - 9092:9092
+    volumes:
+      - ./config:/etc/redpanda # Can't put the config under /opt/workspace because then the rpk tool can't find it in the container...
+      - ./certs:/opt/workspace/certs
+
+  benthos:
+    image: jeffail/benthos:4.0.0-rc1
+    container_name: benthos
+    hostname: benthos
+    command:
+      - -c
+      - /opt/workspace/config/benthos.yaml
+    ports:
+      - 4195:4195
+    volumes:
+      - ./certs:/opt/workspace/certs
+      - ./config:/opt/workspace/config

@@ -1,0 +1,36 @@
+input:
+  kafka:
+    addresses:
+      - redpanda:9092
+    topics:
+      - test_topic
+    target_version: 1.0.0
+    tls:
+      enabled: true
+      skip_cert_verify: false
+      enable_renegotiation: false
+      root_cas_file: /opt/workspace/certs/ca-cert.pem
+      client_certs:
+        - cert_file: /opt/workspace/certs/client-cert.pem
+          key_file: /opt/workspace/certs/client-privkey.pem
+    consumer_group: benthos_consumer_group
+    client_id: benthos_kafka_input
+    start_from_oldest: true
+    checkpoint_limit: 1
+    commit_period: 1s
+    max_processing_period: 100ms
+    extract_tracing_map: ""
+    group:
+      session_timeout: 10s
+      heartbeat_interval: 3s
+      rebalance_timeout: 60s
+    fetch_buffer_cap: 256
+    batching:
+      count: 0
+      byte_size: 0
+      period: ""
+      check: ""
+      processors: []
+
+output:
+  stdout: {}
