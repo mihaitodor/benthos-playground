@@ -48,10 +48,6 @@ rpk:
       key_file: /opt/workspace/certs/client-privkey.pem
       truststore_file: /opt/workspace/certs/ca-cert.pem
   overprovisioned: true
-  tls:
-    cert_file: /opt/workspace/certs/client-cert.pem
-    key_file: /opt/workspace/certs/client-privkey.pem
-    truststore_file: /opt/workspace/certs/ca-cert.pem
   tune_aio_events: false
   tune_ballast_file: false
   tune_clocksource: false
