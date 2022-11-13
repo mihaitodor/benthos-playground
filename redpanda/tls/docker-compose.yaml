@@ -22,7 +22,7 @@ services:
       - ./certs:/opt/workspace/certs
 
   benthos:
-    image: jeffail/benthos:4.0.0-rc1
+    image: jeffail/benthos:4.10.0
     container_name: benthos
     hostname: benthos
     command:
