@@ -1,0 +1,21 @@
+tests:
+  - name: test recursive array flatten
+    target_mapping: recursive_array_flatten.blobl
+    input_batch:
+      - content: |
+          {"foo":"bar"}
+      - content: |
+          [1,2,3]
+      - content: |
+          [1,[2,[3]],[4,5],[[[6]]]]
+      - content: |
+          {"foo":[1,[2,[3]]],"bar":[4,[{"baz":[5]}]]}
+    output_batches:
+      - - json_equals: |
+            {"foo":"bar"}
+        - json_equals: |
+            [1,2,3]
+        - json_equals: |
+            [1,2,3,4,5,6]
+        - json_equals: |
+            {"bar":[4,{"baz":[5]}],"foo":[1,2,3]}

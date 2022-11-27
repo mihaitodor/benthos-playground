@@ -1,0 +1,18 @@
+# Descends recursively through objects and arrays and flattens any nested arrays it encounters
+
+map flatten_rec {
+    let current_node = match {
+        this.type() == "array" => this.map_each(v -> v.apply("flatten_rec"))
+        this.type() == "object" => this.map_each(o -> match {
+            o.value.type() == "object" => o.value.map_each(i -> i.apply("flatten_rec"))
+            o.value.type() == "array" => o.value.apply("flatten_rec")
+            _ => o.value
+        })
+        _ => this
+    }
+    root = if $current_node.type() == "array" {
+        $current_node.flatten()
+    } else { $current_node }
+}
+
+root = this.apply("flatten_rec")
