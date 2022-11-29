@@ -1,0 +1,15 @@
+# Challenge from https://github.com/Jeffail/nested-data-structure-traversal
+
+map lessons {
+    root = this
+    root = this.fold({"position": 1, "items": []}, i -> {
+      "position": if i.value.reset_lesson_position { 1 } else { i.tally.position + i.value.lessons.length() },
+      "items": i.tally.items.append(i.value.assign({
+        "lessons": i.value.lessons.enumerated().map_each(l -> l.value.merge({
+          "position": l.index + if i.value.reset_lesson_position { 1 } else { i.tally.position }
+          }))
+      }))
+    }).items
+}
+
+root = this.map_each(i -> i.merge({"position": count("section")})).apply("lessons")
