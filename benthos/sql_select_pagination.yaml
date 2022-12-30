@@ -1,0 +1,169 @@
+# SQL select with pagination
+
+# It first reads the total number of records in the target table and then it constructs pages via the
+# `PARALLEL_PAGE_COUNT` (default 4) and the `ROWS_PER_PAGE` (default 10) environment variables. Then it fetches pages in
+# parallel as dictated by `PARALLEL_PAGE_COUNT`.
+
+# Production notes: You'll likely want to use an external cache such as Redis and add extra error handling, especially
+# when selecting the actual rows. It might be even better to have different streams / Benthos instances select the
+# rows, where the pages could be transmitted to the worker streams / instances using the `http` processor.
+
+input:
+  read_until:
+    input:
+      sequence:
+        inputs:
+          - resource: total_rows_selector
+            processors:
+              - log:
+                  message: |
+                    Total rows: ${! json("total_rows") }
+              - cache:
+                  resource: pagination_cache
+                  operator: set
+                  key: total_rows
+                  value: ${! json("total_rows") }
+              - mapping: root = deleted()
+          - generate:
+              mapping: root = ""
+              # Let the read_until input figure out when to stop, but ensure that once all the pages are generated, all
+              # subsequent messages are empty so they get dropped. This is required because read_until is unable to stop
+              # its child input exactly after the check condition is satisfied.
+              count: 0
+              interval: 0s
+            processors:
+              - branch:
+                  processors:
+                    - cache:
+                        resource: pagination_cache
+                        operator: get
+                        key: current_page
+                  result_map: meta current_page = content().number()
+              - branch:
+                  processors:
+                    - cache:
+                        resource: pagination_cache
+                        operator: get
+                        key: total_rows
+                  result_map: meta total_rows = content().number()
+              - mapping: |
+                  meta parallel_page_count = env("PARALLEL_PAGE_COUNT").or("4").number()
+                  let rows_per_page = env("ROWS_PER_PAGE").or("10").number()
+
+                  let current_row = @current_page * $rows_per_page
+
+                  let stop_row = $current_row + $rows_per_page * @parallel_page_count
+
+                  let pages = range($current_row, $stop_row, $rows_per_page).map_each(v -> [v, v + $rows_per_page]).filter(i -> i.index(1) <= @total_rows)
+
+                  root = if $pages.length() == @parallel_page_count || ($pages.length() > 0 && $pages.index(-1).index(1) == @total_rows) {
+                    # If the pages are complete, return them directly
+                    $pages
+                  } else if $current_row < @total_rows {
+                    # Append the final incomplete page
+                    if $pages.length() > 0 {
+                      $pages.append([$pages.index(-1).index(1), @total_rows])
+                    } else {
+                      $pages.append([$current_row, @total_rows])
+                    }
+                  } else { [] }
+              - branch:
+                  processors:
+                    - cache:
+                        resource: pagination_cache
+                        operator: set
+                        key: current_page
+                        value: ${! @current_page + @parallel_page_count }
+    check: |
+      json().length() == 0
+    restart_input: false
+  processors:
+    - mapping: |
+        root = if this.length() == 0 { deleted() }
+    - unarchive:
+        format: json_array
+
+pipeline:
+  threads: ${PARALLEL_PAGE_COUNT:4}
+  processors:
+    - log:
+        message: |
+          Query limits for batch index ${! batch_index() }: ${! json() }
+
+    - resource: page_selector
+
+    - catch:
+        - log:
+            message: |
+              Error selecting data: ${! error() }
+        - mapping: root = deleted()
+
+output:
+  stdout: {}
+
+cache_resources:
+  - label: pagination_cache
+    memory:
+      compaction_interval: "" # Never expire
+      init_values:
+        current_page: 0
+
+input_resources:
+  - label: total_rows_selector
+    sql_raw:
+      driver: sqlite
+      dsn: "file::memory:?&cache=shared"
+      conn_max_idle: 1
+      query: |
+        SELECT COUNT(*) AS "total_rows" FROM TEST
+
+processor_resources:
+  - label: page_selector
+    sql_raw:
+      driver: sqlite
+      dsn: "file::memory:?&cache=shared"
+      conn_max_idle: 1
+      init_statement: |
+        DROP TABLE IF EXISTS TEST;
+        CREATE TABLE TEST(VAL INTEGER);
+        -- INSERT INTO TEST(VAL) VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9);
+        INSERT INTO TEST(VAL) VALUES (10), (11), (12), (13), (14), (15), (16), (17), (18), (19);
+        INSERT INTO TEST(VAL) VALUES (20), (21), (22), (23), (24), (25), (26), (27), (28), (29);
+        INSERT INTO TEST(VAL) VALUES (30), (31), (32), (33), (34), (35), (36), (37), (38), (39);
+        INSERT INTO TEST(VAL) VALUES (40), (41), (42), (43), (44), (45), (46), (47), (48), (49);
+        INSERT INTO TEST(VAL) VALUES (50), (51), (52), (53), (54), (55), (56), (57), (58), (59);
+        INSERT INTO TEST(VAL) VALUES (60), (61), (62), (63), (64), (65);
+      query: |
+        SELECT VAL FROM TEST LIMIT ${! json().index(1) - json().index(0) } OFFSET ${! json().index(0) };
+      unsafe_dynamic_query: true
+
+tests:
+  - name: pagination test
+    target_processors: "/input/read_until/input/sequence/inputs/1/processors/2"
+    environment:
+      PARALLEL_PAGE_COUNT: 2
+      ROWS_PER_PAGE: 5
+    input_batch:
+      - metadata:
+          total_rows: 10
+          current_page: 0
+      - metadata:
+          total_rows: 14
+          current_page: 1
+      - metadata:
+          total_rows: 1
+          current_page: 0
+      - metadata:
+          total_rows: 0
+          current_page: 0
+      - metadata:
+          total_rows: 10
+          current_page: 3
+    output_batches:
+      - - json_equals: [[0, 5], [5, 10]]
+          metadata_equals:
+            parallel_page_count: 2
+        - json_equals: [[5, 10], [10, 14]]
+        - json_equals: [[0, 1]]
+        - json_equals: []
+        - json_equals: []
