@@ -1,4 +1,4 @@
-# Bloblang
+# Bloblang examples
 
 Run all tests in this folder
 
