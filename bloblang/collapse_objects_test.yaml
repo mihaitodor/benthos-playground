@@ -1,0 +1,43 @@
+tests:
+    - name: test collapse objects
+      target_mapping: collapse_objects.blobl
+      input_batch:
+          - content: |
+                {
+                    "foo": {
+                        "bar": {
+                            "baz": 666
+                        },
+                        "blob": "fish"
+                    },
+                    "a": {
+                        "b": [
+                            "c",
+                            {
+                                "d": {
+                                    "e": {
+                                        "f": 123
+                                    }
+                                },
+                                "x": {
+                                    "y": {
+                                        "z": 42
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+      output_batches:
+          - - json_equals: |
+                  {
+                      "a.b": [
+                          "c",
+                          {
+                              "d.e.f": 123,
+                              "x.y.z": 42
+                          }
+                      ],
+                      "foo.bar.baz": 666,
+                      "foo.blob": "fish"
+                  }
