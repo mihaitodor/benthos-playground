@@ -1,5 +1,5 @@
 tests:
-    - name: test increment field
+    - name: test complex flatten
       target_mapping: complex_flatten.blobl
       input_batch:
           - content: |
