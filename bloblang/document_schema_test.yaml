@@ -1,0 +1,22 @@
+tests:
+  - name: test document schema
+    target_mapping: document_schema.blobl
+    input_batch:
+      - content: |
+          {"foo": {"bar": 666}, "a": ["b", 3, false, {}, [], null], "c": null}
+    output_batches:
+      - - json_equals: |
+            {
+              "a": [
+                "string",
+                "number",
+                "bool",
+                "object",
+                "array",
+                "null"
+              ],
+              "c": "null",
+              "foo": {
+                "bar": "number"
+              }
+            }

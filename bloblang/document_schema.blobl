@@ -1,0 +1,11 @@
+# Create a schema by walking the document recursively and replacing the values
+# with their types
+map schema {
+    root = match {
+        this.type() == "object" => this.map_each(i -> i.value.apply("schema"))
+        this.type() == "array" => this.map_each(v -> v.type())
+        _ => this.type()
+    }
+}
+
+root = this.apply("schema")
