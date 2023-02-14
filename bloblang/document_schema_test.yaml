@@ -3,7 +3,7 @@ tests:
     target_mapping: document_schema.blobl
     input_batch:
       - content: |
-          {"foo": {"bar": 666}, "a": ["b", 3, false, {}, [], null], "c": null}
+          {"foo": {"bar": {"baz": 666}}, "a": ["b", 3, false, {"dead": "beef"}, [1, 2], {}, [], null], "c": null}
     output_batches:
       - - json_equals: |
             {
@@ -11,12 +11,21 @@ tests:
                 "string",
                 "number",
                 "bool",
-                "object",
-                "array",
+                {
+                  "dead": "string"
+                },
+                [
+                  "number",
+                  "number"
+                ],
+                {},
+                [],
                 "null"
               ],
               "c": "null",
               "foo": {
-                "bar": "number"
+                "bar": {
+                  "baz": "number"
+                }
               }
             }

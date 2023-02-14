@@ -3,7 +3,7 @@
 map schema {
     root = match {
         this.type() == "object" => this.map_each(i -> i.value.apply("schema"))
-        this.type() == "array" => this.map_each(v -> v.type())
+        this.type() == "array" => this.map_each(v -> v.apply("schema"))
         _ => this.type()
     }
 }
