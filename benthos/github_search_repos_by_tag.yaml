@@ -1,0 +1,104 @@
+# Fetch repos by topic via the GitHub GraphQL API
+# Note: The GraphQL query was built using https://docs.github.com/en/graphql/overview/explorer
+#
+# Env vars
+# - `GITHUB_TOKEN`:                Mandatory (requires `admin:org -> read:org` permission)
+# - `GITHUB_ORG`:                  Default ``
+# - `GITHUB_REPO_TOPIC`:           Default `benthos`
+# - `GITHUB_PAGE_SIZE`:            Default `50`
+# - `OUTPUT_FILE`:                 Default `./output.json`
+input:
+  read_until:
+    input:
+      generate:
+        interval: 500ms
+        count: 0 # Let the `read_until` check figure out when to shut down
+        mapping: root = ""
+      processors:
+        - branch:
+            request_map: root = ""
+            processors:
+              - cache:
+                  resource: state_cache
+                  operator: get
+                  key: cursorToken
+              - catch: []
+            result_map: |
+              let first = env("GITHUB_PAGE_SIZE").or(50)
+              root.variables.first = $first
+
+              let startCursor = content().string()
+              root.variables.startCursor = if $startCursor != "" { $startCursor }
+
+              let org = env("GITHUB_ORG").or("")
+              let topic = env("GITHUB_REPO_TOPIC").or("benthos")
+              root.variables.query = if $org != "" { "org:" + $org + " " } else { "" } + "topic:" + $topic
+
+              root.query = """
+              query github_search($first: Int!, $startCursor: String, $query: String!){
+                search(first:$first, after:$startCursor query:$query, type:REPOSITORY) {
+                  pageInfo{
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    ... on Repository {
+                      name
+                      url
+                      repositoryTopics(first: $first) {
+                        nodes {
+                          topic {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              """
+
+        - http:
+            url: https://api.github.com/graphql
+            verb: POST
+            headers:
+              Authorization: token ${GITHUB_TOKEN}
+              Content-Type: application/json
+
+        - catch:
+            - mapping: |
+                root = deleted()
+
+        - mapping: |
+            meta endCursor = this.data.search.pageInfo.endCursor
+            meta stop = !this.data.search.pageInfo.hasNextPage
+            root = this.data.search.nodes.map_each(r -> r.without("repositoryTopics").merge({
+              "topics": r.repositoryTopics.nodes.map_each(t -> t.topic.name)
+            }))
+
+        - branch:
+            processors:
+              - cache:
+                  resource: state_cache
+                  operator: set
+                  key: cursorToken
+                  value: ${! @endCursor }
+
+    check: "@stop"
+
+output:
+  file:
+    path: ${OUTPUT_FILE:./output.json}
+    codec: lines
+
+  processors:
+    - unarchive:
+        format: json_array
+
+cache_resources:
+  - label: state_cache
+    memory:
+      compaction_interval: "" # No expiration
+      init_values: {}
+
+shutdown_timeout: 3s
