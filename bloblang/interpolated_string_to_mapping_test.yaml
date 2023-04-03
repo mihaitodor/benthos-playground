@@ -1,0 +1,17 @@
+tests:
+  - name: test interpolated string to mapping
+    target_mapping: interpolated_string_to_mapping.blobl
+    input_batch:
+      - content: ""
+      - content: " "
+      - content: ${! json("foo").uppercase() }
+      - content: suf}fix-${! json("foo").uppercase() }-${! json("bar").trim() }-pre{fix
+    output_batches:
+      - - json_equals: |
+            {"mapping": "root = \"\""}
+        - json_equals: |
+            {"mapping": "root = \" \""}
+        - json_equals: |
+            {"mapping": "root = json(\"foo\").uppercase()"}
+        - json_equals: |
+            {"mapping": "root = \"suf}fix-\" + json(\"foo\").uppercase() + \"-\" + json(\"bar\").trim() + \"-pre{fix\""}

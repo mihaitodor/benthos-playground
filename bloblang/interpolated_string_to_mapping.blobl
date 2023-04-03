@@ -1,0 +1,20 @@
+# Convert an interpolated string to a mapping
+# Originated from: https://github.com/benthosdev/benthos/issues/1829
+map fix_close_brace {
+    let segment = this.value
+    let isFirst = this.index == 0
+    let closePos = match $segment.reverse().index_of("}") {
+      -1 => -1,
+      _ => $segment.length() - 1 - this
+    }
+    let suffix = if closePos != -1 { $segment.slice($closePos + 1) } else { "" }
+
+    root = match {
+      $closePos != -1 && !$isFirst => $segment.slice(0, $closePos).trim() + if $suffix.length() > 0 { " + " + $suffix.quote() } else { "" }
+      $segment == "" && $isFirst => deleted()
+      _ => $segment.quote()
+    }
+  }
+
+let segments = content().split("${!").enumerated()
+root.mapping = "root = " + if content() != "" { $segments.map_each(segment -> segment.apply("fix_close_brace")).join(" + ") } else { content().quote() }
