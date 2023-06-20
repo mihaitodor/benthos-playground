@@ -1,12 +1,13 @@
 # Fetch repos by topic via the GitHub GraphQL API
-# Note: The GraphQL query was built using https://docs.github.com/en/graphql/overview/explorer
 #
-# Env vars
-# - `GITHUB_TOKEN`:                Mandatory (requires `admin:org -> read:org` permission)
-# - `GITHUB_ORG`:                  Default ``
-# - `GITHUB_REPO_TOPIC`:           Default `benthos`
-# - `GITHUB_PAGE_SIZE`:            Default `50`
-# - `OUTPUT_FILE`:                 Default `./output.json`
+# Note: The GraphQL query was built using https://docs.github.com/en/graphql/overview/explorer.
+#
+# Env vars:
+# - `GITHUB_TOKEN`:      Mandatory (requires `admin:org -> read:org` permission)
+# - `GITHUB_ORG`:        Default ``
+# - `GITHUB_REPO_TOPIC`: Default `benthos`
+# - `GITHUB_PAGE_SIZE`:  Default `50`
+# - `OUTPUT_FILE`:       Default `./output.json`
 input:
   read_until:
     input:

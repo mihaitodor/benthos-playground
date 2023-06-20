@@ -2,7 +2,7 @@
 #
 # Details here: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app
 #
-# Requires Benthos v4.18.0 or greater
+# Requires Benthos v4.18.0 or greater.
 #
 # Env vars:
 # - `GITHUB_APP_ID`:               Mandatory
