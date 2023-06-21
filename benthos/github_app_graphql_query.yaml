@@ -16,33 +16,6 @@ input:
     interval: 1s
 
   processors:
-    - mapping: |
-        meta app_id = env("GITHUB_APP_ID").or(throw("GITHUB_APP_ID must be set"))
-        meta app_installation_id = env("GITHUB_APP_INSTALLATION_ID").or(throw("GITHUB_APP_INSTALLATION_ID must be set"))
-        meta private_key_file = env("GITHUB_APP_PRIVATE_KEY").or("./private-key.pem")
-    - catch:
-        - mapping: root = deleted()
-
-    - mapping: |
-        map generate_jwt {
-          let private_key = file(@private_key_file)
-          let now = now().ts_tz("UTC").ts_unix()
-
-          root = {
-            # Issued 60 seconds in the past to allow for clock drift
-            "iat": $now - 60,
-            "exp": $now + (10 * 60),
-            "iss": @app_id,
-            "alg": "RS256x"
-          }.sign_jwt_rs256($private_key)
-        }
-        meta jwt_token = "".apply("generate_jwt")
-
-    - log:
-        level: DEBUG
-        message: |
-          JWT token: ${! @jwt_token }
-
     - branch:
         processors:
           - cache:
@@ -54,9 +27,33 @@ input:
               - check: errored()
                 processors:
                   - catch: []
+
+                  - mapping: |
+                      meta app_id = env("GITHUB_APP_ID").or(throw("GITHUB_APP_ID must be set"))
+                      meta app_installation_id = env("GITHUB_APP_INSTALLATION_ID").or(throw("GITHUB_APP_INSTALLATION_ID must be set"))
+                      meta private_key_file = env("GITHUB_APP_PRIVATE_KEY").or("./private-key.pem")
+                  - catch:
+                      - mapping: root = deleted()
+
+                  - mapping: |
+                      map generate_jwt {
+                        let private_key = file(@private_key_file)
+                        let now = now().ts_tz("UTC").ts_unix()
+
+                        root = {
+                          # Issued 60 seconds in the past to allow for clock drift
+                          "iat": $now - 60,
+                          "exp": $now + (10 * 60),
+                          "iss": @app_id,
+                          "alg": "RS256x"
+                        }.sign_jwt_rs256($private_key)
+                      }
+                      meta jwt_token = "".apply("generate_jwt")
+
                   - log:
                       level: DEBUG
-                      message: Generating installation token
+                      message: |
+                        JWT token: ${! @jwt_token }
 
                   - http:
                       url: https://api.github.com/app/installations/${! @app_installation_id }/access_tokens
@@ -80,6 +77,12 @@ input:
                       # The token TTL should be 60 minutes, but we subtract now() from expires_at to compute it and we
                       # also decrease it by 60s to allow for clock drift
                       ttl: ${! json("expires_at").ts_strptime("%Y-%m-%dT%H:%M:%SZ").ts_unix() - now().ts_tz("UTC").ts_unix() - 60 }s
+
+                  - log:
+                      level: DEBUG
+                      message: |
+                        Installation token: ${! json("token") }
+
                   - mapping: |
                       root = this.token
 
