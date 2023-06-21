@@ -51,35 +51,35 @@ input:
               key: installation_token
 
           - switch:
-            - check: errored()
-              processors:
-                - catch: []
-                - log:
-                    level: DEBUG
-                    message: Generating installation token
-
-                - http:
-                    url: https://api.github.com/app/installations/${! @app_installation_id }/access_tokens
-                    verb: POST
-                    headers:
-                      Accept: application/vnd.github+json
-                      Authorization: Bearer ${! @jwt_token }
-                      X-GitHub-Api-Version: "2022-11-28"
-                      Content-Type: application/json
-                - catch:
+              - check: errored()
+                processors:
+                  - catch: []
                   - log:
-                      message: |
-                        Failed to generate installation token: ${! error() }
-                  - mapping: root = deleted()
+                      level: DEBUG
+                      message: Generating installation token
 
-                - cache:
-                    resource: token_cache
-                    operator: set
-                    key: installation_token
-                    value: ${! json("token") }
-                    ttl: ${! json("expires_at").ts_strptime("%Y-%m-%dT%H:%M:%SZ").ts_unix() - now().ts_tz("UTC").ts_unix()}s
-                - mapping: |
-                    root = this.token
+                  - http:
+                      url: https://api.github.com/app/installations/${! @app_installation_id }/access_tokens
+                      verb: POST
+                      headers:
+                        Accept: application/vnd.github+json
+                        Authorization: Bearer ${! @jwt_token }
+                        X-GitHub-Api-Version: "2022-11-28"
+                        Content-Type: application/json
+                  - catch:
+                      - log:
+                          message: |
+                            Failed to generate installation token: ${! error() }
+                      - mapping: root = deleted()
+
+                  - cache:
+                      resource: token_cache
+                      operator: set
+                      key: installation_token
+                      value: ${! json("token") }
+                      ttl: ${! json("expires_at").ts_strptime("%Y-%m-%dT%H:%M:%SZ").ts_unix() - now().ts_tz("UTC").ts_unix()}s
+                  - mapping: |
+                      root = this.token
 
         result_map: |
           meta installation_token = content()
@@ -102,10 +102,10 @@ input:
           Content-Type: application/json
 
     - catch:
-      - log:
-          message: |
-            Failed to query the GraphQL API: ${! error() }
-      - mapping: root = deleted()
+        - log:
+            message: |
+              Failed to query the GraphQL API: ${! error() }
+        - mapping: root = deleted()
 
 output:
   stdout: {}
