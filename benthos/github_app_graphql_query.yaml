@@ -77,7 +77,9 @@ input:
                       operator: set
                       key: installation_token
                       value: ${! json("token") }
-                      ttl: ${! json("expires_at").ts_strptime("%Y-%m-%dT%H:%M:%SZ").ts_unix() - now().ts_tz("UTC").ts_unix()}s
+                      # The token TTL should be 60 minutes, but we subtract now() from expires_at to compute it and we
+                      # also decrease it by 60s to allow for clock drift
+                      ttl: ${! json("expires_at").ts_strptime("%Y-%m-%dT%H:%M:%SZ").ts_unix() - now().ts_tz("UTC").ts_unix() - 60 }s
                   - mapping: |
                       root = this.token
 
