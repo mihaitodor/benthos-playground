@@ -1,0 +1,39 @@
+# JSON array file output
+
+input:
+  sequence:
+    inputs:
+      - generate:
+          count: 2
+          interval: 0s
+          mapping: root.foo = "bar"
+      - generate:
+          count: 1
+          interval: 0s
+          mapping: |
+            meta done = true
+
+output:
+  file:
+    path: ./output.json
+    codec: append
+  processors:
+    - mapping: |
+        root = if count("messages") == 1 { "[" + content() } else {
+          if @done == true { content() + "]" } else { "," + content() }
+        }
+
+tests:
+  - name: pagination test
+    target_processors: "/output/processors"
+    input_batch:
+      - json_content:
+          foo: bar
+      - json_content:
+          bar: baz
+      - metadata:
+          done: true
+    output_batches:
+      - - content_equals: "[{\"foo\":\"bar\"}"
+        - content_equals: ",{\"bar\":\"baz\"}"
+        - content_equals: "]"
