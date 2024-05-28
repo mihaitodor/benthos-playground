@@ -1,3 +1,9 @@
+# Metrics with a custom label set to a random number
+
+# Bloblang variables are evaluated on startup if Benthos believes their input is
+# static. Over here, we're abusing this property to get the `counter()` function
+# to only run once on startup.
+
 input:
   generate:
     mapping: root.foo = "bar"
@@ -8,7 +14,7 @@ metrics:
     let rand = random_int(min:1, seed:timestamp_unix_nano())
     let evenRand = if $rand % 2 == 0 { $rand } else { $rand - 1 }
     let staticRand = counter(min:$evenRand, max:$evenRand + 1)
-    
+
     # Add an `id` label to the emitted metrics with a fixed random value
     meta id = if $staticRand % 2 == 0 { $staticRand } else { $staticRand - 1 }
 
