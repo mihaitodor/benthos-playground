@@ -1,0 +1,30 @@
+# Read historical data from a Kafka topic in combination with a `system_window`
+# buffer.
+
+# Bloblang variables are evaluated on startup if Benthos believes their input is
+# static. Over here, we're abusing this property to get the `counter()` function
+# to only run once on startup. This way, the `system_window` buffer won't drop
+# data with a timestamp that's older than the current time.
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - localhost:9092
+    topics:
+      - foobar
+    consumer_group: foobar
+    client_id: benthos
+    start_from_oldest: true
+
+buffer:
+  system_window:
+    timestamp_mapping: |
+      let now = timestamp_unix()
+      let staticNow = counter(min:$now, max:$now + 1)
+      let ts = @kafka_timestamp_unix
+
+      root = if $staticNow > $ts { $staticNow } else { $ts }
+    size: 10s
+
+output:
+  stdout: {}
