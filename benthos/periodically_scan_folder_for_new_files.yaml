@@ -1,0 +1,52 @@
+# Periodically scan the current folder for new files and output their contents.
+#
+# This config uses a cache to keep track of the files which have been processed
+# already so they can be skipped on the next iteration.
+
+input:
+  generate:
+    count: 0
+    interval: 1s
+    mapping: root = ""
+  processors:
+    - command:
+        name: find
+        args_mapping: |
+          [ ".", "-type", "f" ]
+
+    # Get rid of the trailing newline so we don't get one extra empty message
+    - mapping: root = content().trim()
+
+    - unarchive:
+        format: lines
+
+    - mapping: |
+        meta path = content()
+        root = ""
+
+    - cache:
+        resource: paths_cache
+        operator: exists
+        key: ${! @path }
+
+    - switch:
+        - check: content() == "true"
+          processors:
+            - mapping: root = deleted()
+
+        - processors:
+            - mapping: root = file(@path)
+
+            - cache:
+                resource: paths_cache
+                operator: set
+                key: ${! @path }
+                value: ""
+
+output:
+  stdout: {}
+
+cache_resources:
+  - label: paths_cache
+    memory:
+      compaction_interval: ""
