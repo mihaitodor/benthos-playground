@@ -1,0 +1,25 @@
+tests:
+    - name: test fixed width values parser
+      target_mapping: fixed_width_values_parser.blobl
+      input_batch:
+        - content: |
+            foobar   666jotunheim2025-01-1601:15:30
+            bazqux   007   asgard2025-02-1701:30:45
+      output_batches:
+        - - json_equals: |
+              [
+                {
+                  "username": "foobar",
+                  "reserved": "ICAg",
+                  "id": 666,
+                  "location": "jotunheim",
+                  "timestamp": "2025-01-16T01:15:30Z"
+                },
+                {
+                  "username": "bazqux",
+                  "reserved": "ICAg",
+                  "id": 7,
+                  "location": "asgard",
+                  "timestamp": "2025-02-17T01:30:45Z"
+                }
+              ]

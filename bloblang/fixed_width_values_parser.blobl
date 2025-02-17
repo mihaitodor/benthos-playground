@@ -1,0 +1,53 @@
+# Parse a fixed width values text file
+#
+# Each line in the file contains multiple values which have a fixed width. If, for example, some strings are shorter
+# than the fixed width, they are padded with spaces. Similarly, if a number is shorter than the fixed width, it is
+# padded with zeroes. Unlike CSV files, this file format may not have any separator between each field. See the test for
+# a few examples.
+map extract_field {
+    let field = this.data.slice(0, this.length)
+
+    root.field = match this.type {
+        "string" => $field.string().trim()
+        "number" => $field.number()
+        "timestamp" => $field.ts_strptime("%Y-%m-%d%H:%M:%S")
+        _ => $field
+    }
+
+    root.data = this.data.slice(this.length)
+}
+
+map extract_string_field {
+    root = this.assign({"type": "string"}).apply("extract_field")
+}
+
+map extract_number_field {
+    root = this.assign({"type": "number"}).apply("extract_field")
+}
+
+map extract_timestamp_field {
+    root = this.assign({"type": "timestamp", "length": 18}).apply("extract_field")
+}
+
+map parse_line {
+    let state = {"data": this}
+
+    let state = $state.assign({"length": 6}).apply("extract_string_field")
+    root.username = $state.field
+
+    let state = $state.assign({"length": 3}).apply("extract_field")
+    root.reserved = $state.field
+
+    let state = $state.assign({"length": 3}).apply("extract_number_field")
+    root.id = $state.field
+
+    let state = $state.assign({"length": 9}).apply("extract_string_field")
+    root.location = $state.field
+
+    let state = $state.apply("extract_timestamp_field")
+    root.timestamp = $state.field
+}
+
+let lines = content().split("\n").map_each(l -> if l.trim() == "" { deleted() })
+
+root = $lines.map_each(l -> l.apply("parse_line"))
