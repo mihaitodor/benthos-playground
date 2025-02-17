@@ -1,4 +1,5 @@
 # Originated from https://github.com/Jeffail/benthos/issues/1036
+
 map do_obj {
     let innerObjs = this.subs.map_each(v -> v.apply("do_obj")).or([])
 

@@ -8,6 +8,7 @@
 # - `GITHUB_REPO_TOPIC`: Default `benthos`
 # - `GITHUB_PAGE_SIZE`:  Default `50`
 # - `OUTPUT_FILE`:       Default `./output.json`
+
 input:
   read_until:
     input:

@@ -4,6 +4,7 @@
 # than the fixed width, they are padded with spaces. Similarly, if a number is shorter than the fixed width, it is
 # padded with zeroes. Unlike CSV files, this file format may not have any separator between each field. See the test for
 # a few examples.
+
 map extract_field {
     let field = this.data.slice(0, this.length)
 

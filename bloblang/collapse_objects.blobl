@@ -1,4 +1,5 @@
 # Collapse objects just like the `collapse()` method, but leave arrays intact
+
 map collapse_rec {
     let path = (this.path + ".") | ""
     let data = this.data

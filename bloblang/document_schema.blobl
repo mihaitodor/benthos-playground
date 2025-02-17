@@ -1,5 +1,5 @@
-# Create a schema by walking the document recursively and replacing the values
-# with their types
+# Create a schema by walking the document recursively and replacing the values with their types
+
 map schema {
     root = match {
         this.type() == "object" => this.map_each(i -> i.value.apply("schema"))

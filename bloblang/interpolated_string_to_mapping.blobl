@@ -1,5 +1,6 @@
 # Convert an interpolated string to a mapping
 # Originated from: https://github.com/benthosdev/benthos/issues/1829
+
 map fix_close_brace {
     let segment = this.value
     let isFirst = this.index == 0
