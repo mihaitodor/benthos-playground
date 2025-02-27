@@ -7,6 +7,8 @@ import (
 
 	"github.com/redpanda-data/benthos/v4/public/bloblang"
 	"github.com/redpanda-data/benthos/v4/public/service"
+
+	_ "github.com/redpanda-data/benthos/v4/public/components/pure"
 )
 
 func main() {
