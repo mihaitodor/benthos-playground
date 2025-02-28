@@ -1,0 +1,39 @@
+tests:
+  - name: test recursive remove nulls
+    target_mapping: recursive_remove_nulls.blobl
+    input_batch:
+      - content: |
+          {
+            "id": 1,
+            "name": "foobar",
+            "foo": {
+              "bar": {
+              "baz": null
+              },
+              "qux": null
+            },
+            "aaa": {
+              "bbb": null,
+              "ccc": "ddd"
+            },
+            "arr": [
+              [
+                null,
+                {"foo": null}
+              ],
+              "bar"
+            ]
+          }
+
+    output_batches:
+      - - json_equals: |
+            {
+              "aaa": {
+                "ccc": "ddd"
+              },
+              "arr": [
+                "bar"
+              ],
+              "id": 1,
+              "name": "foobar"
+            }

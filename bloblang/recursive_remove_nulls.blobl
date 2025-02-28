@@ -1,0 +1,25 @@
+# Remove all null values from a JSON structure including any empty objects or arrays that are left behind
+
+map do_array {
+    let arr = this.map_each(v -> v.apply("remove_nulls"))
+    root = if $arr == [] { deleted() } else { $arr }
+}
+
+map do_object {
+    let obj = this.map_each(i -> if i.value == null { deleted() } else { i.value.apply("remove_nulls") })
+    root = match {
+        $obj == {} => deleted()
+        _ => $obj
+    }
+}
+
+map remove_nulls {
+    root = match {
+        this.type() == "object" => this.apply("do_object")
+        this.type() == "array" => this.apply("do_array")
+        this == null => deleted()
+        _ => this
+    }
+}
+
+root = this.apply("remove_nulls")
