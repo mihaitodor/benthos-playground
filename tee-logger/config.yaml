@@ -1,0 +1,8 @@
+input:
+  generate:
+    count: 1
+    mapping: root = ""
+  processors:
+    - label: kaboomer
+      mapping: |
+        root = throw("Kaboom!")
