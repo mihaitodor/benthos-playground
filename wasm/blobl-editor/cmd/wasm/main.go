@@ -28,24 +28,34 @@ func blobl(_ js.Value, args []js.Value) any {
 		return fmt.Sprintf("Failed to parse mapping: %s", err)
 	}
 
-	msg, err := service.NewMessage([]byte(args[1].String())).BloblangQuery(mapping)
+	result, err := service.NewMessage([]byte(args[1].String())).BloblangQuery(mapping)
 	if err != nil {
 		return fmt.Sprintf("Failed to execute mapping: %s", err)
 	}
 
-	message, err := msg.AsStructured()
-	if err != nil {
-		return fmt.Sprintf("Failed to marshal message: %s", err)
-	}
-
+	var message any
 	var metadata map[string]any
-	msg.MetaWalkMut(func(key string, value any) error {
-		if metadata == nil {
-			metadata = make(map[string]any)
+	// The result is nil if the mapping assigns `deleted()` to `root`
+	if result != nil {
+		message, err = result.AsStructured()
+		if err != nil {
+			res, err := result.AsBytes()
+			if err != nil {
+				return fmt.Errorf("failed to extract message: %s", err)
+			}
+			message = string(res)
 		}
-		metadata[key] = value
-		return nil
-	})
+
+		if err = result.MetaWalkMut(func(key string, value any) error {
+			if metadata == nil {
+				metadata = make(map[string]any)
+			}
+			metadata[key] = value
+			return nil
+		}); err != nil {
+			return fmt.Errorf("failed to extract metadata: %s", err)
+		}
+	}
 
 	var output []byte
 	if output, err = json.MarshalIndent(struct {
