@@ -12,4 +12,4 @@ map lessons {
     }).items
 }
 
-root = this.map_each(i -> i.merge({"position": count("section")})).apply("lessons")
+root = this.enumerated().map_each(i -> i.value.merge({"position": i.index + 1})).apply("lessons")
